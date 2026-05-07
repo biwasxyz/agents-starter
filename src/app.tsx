@@ -93,6 +93,91 @@ function ThemeToggle() {
   );
 }
 
+// ── Reasoning rendering ───────────────────────────────────────────────
+
+function ReasoningPart({
+  text,
+  state,
+  isStreaming
+}: {
+  text: string;
+  state?: "streaming" | "done";
+  isStreaming: boolean;
+}) {
+  const isDone = state === "done" || !isStreaming;
+  const startRef = useRef<number | null>(
+    state === "done" ? null : Date.now()
+  );
+  const [endTime, setEndTime] = useState<number | null>(null);
+  const [open, setOpen] = useState(true);
+  const userToggled = useRef(false);
+
+  useEffect(() => {
+    if (isDone && startRef.current !== null && endTime === null) {
+      setEndTime(Date.now());
+    }
+  }, [isDone, endTime]);
+
+  useEffect(() => {
+    if (!isDone || userToggled.current) return;
+    const t = setTimeout(() => setOpen(false), 700);
+    return () => clearTimeout(t);
+  }, [isDone]);
+
+  const duration =
+    startRef.current !== null && endTime !== null
+      ? ((endTime - startRef.current) / 1000).toFixed(1)
+      : null;
+
+  return (
+    <div className="flex justify-start">
+      <details
+        className="max-w-[85%] w-full"
+        open={open}
+        onToggle={(e) => {
+          const next = (e.currentTarget as HTMLDetailsElement).open;
+          if (next !== open) userToggled.current = true;
+          setOpen(next);
+        }}
+      >
+        <summary className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg bg-kumo-control hover:bg-kumo-base border border-kumo-line text-xs select-none transition-colors">
+          <BrainIcon
+            size={13}
+            className={isDone ? "text-kumo-inactive" : "text-kumo-brand"}
+          />
+          {isDone ? (
+            <span className="text-kumo-subtle">
+              {duration ? `Reasoned for ${duration}s` : "Reasoning"}
+            </span>
+          ) : (
+            <span className="text-kumo-default flex items-center gap-1.5">
+              Thinking
+              <span className="inline-flex gap-0.5">
+                <span
+                  className="h-1 w-1 rounded-full bg-kumo-brand animate-typing-dot"
+                  style={{ animationDelay: "-0.32s" }}
+                />
+                <span
+                  className="h-1 w-1 rounded-full bg-kumo-brand animate-typing-dot"
+                  style={{ animationDelay: "-0.16s" }}
+                />
+                <span className="h-1 w-1 rounded-full bg-kumo-brand animate-typing-dot" />
+              </span>
+            </span>
+          )}
+          <CaretDownIcon
+            size={12}
+            className={`ml-auto text-kumo-inactive transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          />
+        </summary>
+        <pre className="mt-2 px-3 py-2 rounded-lg bg-kumo-control text-xs text-kumo-subtle whitespace-pre-wrap overflow-auto max-h-64 leading-relaxed font-mono">
+          {text}
+        </pre>
+      </details>
+    </div>
+  );
+}
+
 // ── Tool rendering ────────────────────────────────────────────────────
 
 function ToolPartView({
@@ -730,34 +815,13 @@ function Chat() {
                       text: string;
                       state?: "streaming" | "done";
                     };
-                    const isDone = reasoning.state === "done" || !isStreaming;
                     return (
-                      <div key={i} className="flex justify-start">
-                        <details className="max-w-[85%] w-full" open={!isDone}>
-                          <summary className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-sm select-none">
-                            <BrainIcon size={14} className="text-purple-400" />
-                            <span className="font-medium text-kumo-default">
-                              Reasoning
-                            </span>
-                            {isDone ? (
-                              <span className="text-xs text-kumo-success">
-                                Complete
-                              </span>
-                            ) : (
-                              <span className="text-xs text-kumo-brand">
-                                Thinking...
-                              </span>
-                            )}
-                            <CaretDownIcon
-                              size={14}
-                              className="ml-auto text-kumo-inactive"
-                            />
-                          </summary>
-                          <pre className="mt-2 px-3 py-2 rounded-lg bg-kumo-control text-xs text-kumo-default whitespace-pre-wrap overflow-auto max-h-64">
-                            {reasoning.text}
-                          </pre>
-                        </details>
-                      </div>
+                      <ReasoningPart
+                        key={`${message.id}-reasoning-${i}`}
+                        text={reasoning.text}
+                        state={reasoning.state}
+                        isStreaming={isLastAssistant && isStreaming}
+                      />
                     );
                   })}
 
@@ -821,14 +885,16 @@ function Chat() {
 
           {(() => {
             const last = messages[messages.length - 1];
-            const lastHasAssistantText =
+            const lastHasContent =
               last?.role === "assistant" &&
-              last.parts.some(
-                (p) =>
-                  p.type === "text" &&
-                  (p as { text?: string }).text?.trim()
-              );
-            if (!isStreaming || lastHasAssistantText) return null;
+              last.parts.some((p) => {
+                if (isToolUIPart(p)) return true;
+                if (p.type === "text" || p.type === "reasoning") {
+                  return Boolean((p as { text?: string }).text?.trim());
+                }
+                return false;
+              });
+            if (!isStreaming || lastHasContent) return null;
             return (
               <div className="flex justify-start animate-message-in">
                 <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-kumo-base ring ring-kumo-line flex items-center gap-1.5">
