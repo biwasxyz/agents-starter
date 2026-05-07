@@ -530,33 +530,36 @@ function Chat() {
       )}
 
       {/* Header */}
-      <header className="px-5 py-4 bg-kumo-base border-b border-kumo-line">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-kumo-default flex items-center gap-2 tracking-tight">
+      <header className="px-4 sm:px-5 py-3 sm:py-4 bg-kumo-base border-b border-kumo-line">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <h1 className="text-base sm:text-lg font-semibold text-kumo-default flex items-center gap-2 tracking-tight">
               <span
-                className="inline-block h-2 w-2 rounded-full bg-kumo-brand animate-brand-pulse"
+                className="inline-block h-2 w-2 rounded-full bg-kumo-brand animate-brand-pulse shrink-0"
                 aria-hidden="true"
               />
               biwas.ai
             </h1>
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="hidden sm:inline-flex">
               <ChatCircleDotsIcon size={12} weight="bold" className="mr-1" />
               Personal agent
             </Badge>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <div className="flex items-center gap-1.5">
               <CircleIcon
                 size={8}
                 weight="fill"
                 className={connected ? "text-kumo-success" : "text-kumo-danger"}
+                aria-label={connected ? "Connected" : "Disconnected"}
               />
-              <Text size="xs" variant="secondary">
-                {connected ? "Connected" : "Disconnected"}
-              </Text>
+              <span className="hidden sm:inline">
+                <Text size="xs" variant="secondary">
+                  {connected ? "Connected" : "Disconnected"}
+                </Text>
+              </span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5">
               <BugIcon size={14} className="text-kumo-inactive" />
               <Switch
                 checked={showDebug}
@@ -569,6 +572,15 @@ function Chat() {
             <div className="relative" ref={mcpPanelRef}>
               <Button
                 variant="secondary"
+                shape="square"
+                className="sm:hidden"
+                icon={<PlugsConnectedIcon size={16} />}
+                onClick={() => setShowMcpPanel(!showMcpPanel)}
+                aria-label={`MCP servers${mcpToolCount > 0 ? ` (${mcpToolCount} tools)` : ""}`}
+              />
+              <Button
+                variant="secondary"
+                className="hidden sm:inline-flex"
                 icon={<PlugsConnectedIcon size={16} />}
                 onClick={() => setShowMcpPanel(!showMcpPanel)}
               >
@@ -583,7 +595,7 @@ function Chat() {
 
               {/* MCP Dropdown Panel */}
               {showMcpPanel && (
-                <div className="absolute right-0 top-full mt-2 w-96 z-50">
+                <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 z-50">
                   <Surface className="rounded-xl ring ring-kumo-line shadow-lg p-4 space-y-4">
                     {/* Panel Header */}
                     <div className="flex items-center justify-between">
@@ -733,6 +745,15 @@ function Chat() {
             </div>
             <Button
               variant="secondary"
+              shape="square"
+              className="sm:hidden"
+              icon={<TrashIcon size={16} />}
+              onClick={clearHistory}
+              aria-label="Clear conversation"
+            />
+            <Button
+              variant="secondary"
+              className="hidden sm:inline-flex"
               icon={<TrashIcon size={16} />}
               onClick={clearHistory}
             >
@@ -744,7 +765,7 @@ function Chat() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-5 py-6 space-y-5">
+        <div className="max-w-3xl mx-auto px-4 sm:px-5 py-5 sm:py-6 space-y-4 sm:space-y-5">
           {messages.length === 0 && (
             <Empty
               icon={<ChatCircleDotsIcon size={32} />}
@@ -923,7 +944,7 @@ function Chat() {
             e.preventDefault();
             send();
           }}
-          className="max-w-3xl mx-auto px-5 py-4"
+          className="max-w-3xl mx-auto px-3 sm:px-5 py-3 sm:py-4"
         >
           <input
             ref={fileInputRef}
@@ -962,7 +983,7 @@ function Chat() {
             </div>
           )}
 
-          <div className="flex items-end gap-3 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-sm focus-within:ring-2 focus-within:ring-kumo-ring focus-within:border-transparent transition-shadow">
+          <div className="flex items-end gap-2 sm:gap-3 rounded-xl border border-kumo-line bg-kumo-base p-2 sm:p-3 shadow-sm focus-within:ring-2 focus-within:ring-kumo-ring focus-within:border-transparent transition-shadow">
             <Button
               type="button"
               variant="ghost"
