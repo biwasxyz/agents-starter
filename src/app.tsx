@@ -819,6 +819,33 @@ function Chat() {
             );
           })}
 
+          {(() => {
+            const last = messages[messages.length - 1];
+            const lastHasAssistantText =
+              last?.role === "assistant" &&
+              last.parts.some(
+                (p) =>
+                  p.type === "text" &&
+                  (p as { text?: string }).text?.trim()
+              );
+            if (!isStreaming || lastHasAssistantText) return null;
+            return (
+              <div className="flex justify-start animate-message-in">
+                <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-kumo-base ring ring-kumo-line flex items-center gap-1.5">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-kumo-inactive animate-typing-dot"
+                    style={{ animationDelay: "-0.32s" }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-kumo-inactive animate-typing-dot"
+                    style={{ animationDelay: "-0.16s" }}
+                  />
+                  <span className="h-1.5 w-1.5 rounded-full bg-kumo-inactive animate-typing-dot" />
+                </div>
+              </div>
+            );
+          })()}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
