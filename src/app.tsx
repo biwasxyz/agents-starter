@@ -448,12 +448,16 @@ function Chat() {
       <header className="px-5 py-4 bg-kumo-base border-b border-kumo-line">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-kumo-default">
-              <span className="mr-2">⛅</span>Agent Starter
+            <h1 className="text-lg font-semibold text-kumo-default flex items-center gap-2 tracking-tight">
+              <span
+                className="inline-block h-2 w-2 rounded-full bg-kumo-brand animate-brand-pulse"
+                aria-hidden="true"
+              />
+              biwas.ai
             </h1>
             <Badge variant="secondary">
               <ChatCircleDotsIcon size={12} weight="bold" className="mr-1" />
-              AI Chat
+              Personal agent
             </Badge>
           </div>
           <div className="flex items-center gap-3">
@@ -659,14 +663,14 @@ function Chat() {
           {messages.length === 0 && (
             <Empty
               icon={<ChatCircleDotsIcon size={32} />}
-              title="Start a conversation"
+              title="Hi, I'm Biwas's agent"
               contents={
                 <div className="flex flex-wrap justify-center gap-2">
                   {[
-                    "What's the weather in Paris?",
-                    "What timezone am I in?",
-                    "Calculate 5000 * 3",
-                    "Remind me in 5 minutes to take a break"
+                    "Who is Biwas?",
+                    "What's he working on?",
+                    "Show me his projects",
+                    "How do I hire him?"
                   ].map((prompt) => (
                     <Button
                       key={prompt}
@@ -694,7 +698,10 @@ function Chat() {
               message.role === "assistant" && index === messages.length - 1;
 
             return (
-              <div key={message.id} className="space-y-2">
+              <div
+                key={message.id}
+                className="space-y-2 animate-message-in"
+              >
                 {showDebug && (
                   <pre className="text-[11px] text-kumo-subtle bg-kumo-control rounded-lg p-3 overflow-auto max-h-64">
                     {JSON.stringify(message, null, 2)}

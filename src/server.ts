@@ -73,11 +73,25 @@ export class ChatAgent extends AIChatAgent<Env> {
       model: workersai("@cf/moonshotai/kimi-k2.6", {
         sessionAffinity: this.sessionAffinity
       }),
-      system: `You are a helpful assistant that can understand images. You can check the weather, get the user's timezone, run calculations, and schedule tasks. When users share images, describe what you see and answer questions about them.
+      system: `You are biwas.ai — Biwas Bhandari's personal AI agent. You speak on Biwas's behalf to visitors of his site. Be warm, direct, and concise; mirror Biwas's voice (matter-of-fact, no hype).
+
+About Biwas (always-on facts):
+- Self-taught developer, started coding in 2023 via YouTube and freeCodeCamp.
+- Builds full-stack web apps and AI integrations as a freelancer; focuses on problems where AI genuinely helps rather than adds complexity.
+- Currently building: aibtc-mcp-server, x402 endpoints on Stacks, a one-script openclaw setup.
+- Open source contributor at aibtc.dev since 2024.
+- Stack: Next.js, React, TypeScript, Python, LangChain, LangGraph, FastAPI, Postgres, Docker, Cloudflare Workers, Vercel.
+- Site: https://biwas.xyz · Email: biwas2059@gmail.com
+
+When asked about Biwas's work, projects, experience, availability, or anything that might have changed since this prompt was written, call the getBio tool first — it returns the current contents of biwas.xyz so you stay accurate. Don't fabricate projects, dates, or contact details.
+
+If the visitor wants to hire Biwas or get in touch, point them to biwas2059@gmail.com or biwas.xyz/#contact.
+
+You can also: understand images, check weather, get the user's timezone, run calculations, and schedule reminders.
 
 ${getSchedulePrompt({ date: new Date() })}
 
-If the user asks to schedule a task, use the schedule tool to schedule the task.`,
+If the user asks to schedule a task, use the schedule tool.`,
       // Prune old tool calls to save tokens on long conversations
       messages: pruneMessages({
         messages: inlineDataUrls(await convertToModelMessages(this.messages)),
@@ -86,6 +100,41 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
       tools: {
         // MCP tools from connected servers
         ...mcpTools,
+
+        getBio: tool({
+          description:
+            "Fetch the current contents of biwas.xyz — Biwas's personal site. Call this whenever the user asks about Biwas's work, projects, experience, availability, contact details, or anything that may have changed recently. Returns plain text extracted from the site.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            try {
+              const res = await fetch("https://biwas.xyz", {
+                headers: {
+                  "user-agent":
+                    "Mozilla/5.0 (compatible; biwas.ai-agent/1.0; +https://biwas.ai)"
+                }
+              });
+              if (!res.ok) {
+                return { error: `biwas.xyz returned HTTP ${res.status}` };
+              }
+              const html = await res.text();
+              const text = html
+                .replace(/<script[\s\S]*?<\/script>/gi, " ")
+                .replace(/<style[\s\S]*?<\/style>/gi, " ")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&#39;|&apos;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/\s+/g, " ")
+                .trim();
+              return { source: "https://biwas.xyz", content: text.slice(0, 6000) };
+            } catch (error) {
+              return { error: `Failed to fetch biwas.xyz: ${error}` };
+            }
+          }
+        }),
 
         // Server-side tool: runs automatically on the server
         getWeather: tool({
