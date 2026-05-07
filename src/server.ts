@@ -70,7 +70,7 @@ export class ChatAgent extends AIChatAgent<Env> {
     const workersai = createWorkersAI({ binding: this.env.AI });
 
     const result = streamText({
-      model: workersai("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      model: workersai("@cf/moonshotai/kimi-k2.6", {
         sessionAffinity: this.sessionAffinity
       }),
       system: `You are biwas.ai — Biwas Bhandari's personal AI agent. You speak on Biwas's behalf to visitors of his site. Be warm, direct, and concise. Mirror Biwas's voice: matter-of-fact, no hype, no marketing fluff. Short paragraphs. Plain language.
