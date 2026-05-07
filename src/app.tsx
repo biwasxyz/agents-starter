@@ -36,7 +36,8 @@ import {
   XIcon,
   WrenchIcon,
   PaperclipIcon,
-  ImageIcon
+  ImageIcon,
+  ListIcon
 } from "@phosphor-icons/react";
 
 // ── Attachment helpers ────────────────────────────────────────────────
@@ -66,31 +67,23 @@ function fileToDataUri(file: File): Promise<string> {
   });
 }
 
-// ── Small components ──────────────────────────────────────────────────
+// ── Theme ─────────────────────────────────────────────────────────────
 
-function ThemeToggle() {
+function useTheme(): [boolean, () => void] {
   const [dark, setDark] = useState(
     () => document.documentElement.getAttribute("data-mode") === "dark"
   );
-
   const toggle = useCallback(() => {
-    const next = !dark;
-    setDark(next);
-    const mode = next ? "dark" : "light";
-    document.documentElement.setAttribute("data-mode", mode);
-    document.documentElement.style.colorScheme = mode;
-    localStorage.setItem("theme", mode);
-  }, [dark]);
-
-  return (
-    <Button
-      variant="secondary"
-      shape="square"
-      icon={dark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-      onClick={toggle}
-      aria-label="Toggle theme"
-    />
-  );
+    setDark((current) => {
+      const next = !current;
+      const mode = next ? "dark" : "light";
+      document.documentElement.setAttribute("data-mode", mode);
+      document.documentElement.style.colorScheme = mode;
+      localStorage.setItem("theme", mode);
+      return next;
+    });
+  }, []);
+  return [dark, toggle];
 }
 
 // ── Reasoning rendering ───────────────────────────────────────────────
@@ -325,7 +318,10 @@ function Chat() {
   const [mcpName, setMcpName] = useState("");
   const [mcpUrl, setMcpUrl] = useState("");
   const [isAddingServer, setIsAddingServer] = useState(false);
-  const mcpPanelRef = useRef<HTMLDivElement>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const [dark, toggleTheme] = useTheme();
 
   const agent = useAgent<ChatAgent>({
     agent: "ChatAgent",
@@ -357,13 +353,13 @@ function Chat() {
     )
   });
 
-  // Close MCP panel when clicking outside
+  // Close MCP panel when clicking outside the controls cluster
   useEffect(() => {
     if (!showMcpPanel) return;
     function handleClickOutside(e: MouseEvent) {
       if (
-        mcpPanelRef.current &&
-        !mcpPanelRef.current.contains(e.target as Node)
+        controlsRef.current &&
+        !controlsRef.current.contains(e.target as Node)
       ) {
         setShowMcpPanel(false);
       }
@@ -371,6 +367,21 @@ function Chat() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMcpPanel]);
+
+  // Close mobile menu when clicking outside it
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
+        setShowMobileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMobileMenu]);
 
   const handleAddServer = async () => {
     if (!mcpName.trim() || !mcpUrl.trim()) return;
@@ -515,7 +526,7 @@ function Chat() {
 
   return (
     <div
-      className="flex flex-col h-screen bg-kumo-elevated relative"
+      className="flex flex-col h-dvh overflow-hidden bg-kumo-elevated relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -545,7 +556,11 @@ function Chat() {
               Personal agent
             </Badge>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div
+            className="relative flex items-center gap-1.5 sm:gap-3"
+            ref={controlsRef}
+          >
+            {/* Connection indicator (dot always visible, text on desktop) */}
             <div className="flex items-center gap-1.5">
               <CircleIcon
                 size={8}
@@ -559,28 +574,27 @@ function Chat() {
                 </Text>
               </span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5">
-              <BugIcon size={14} className="text-kumo-inactive" />
-              <Switch
-                checked={showDebug}
-                onCheckedChange={setShowDebug}
-                size="sm"
-                aria-label="Toggle debug mode"
-              />
-            </div>
-            <ThemeToggle />
-            <div className="relative" ref={mcpPanelRef}>
+
+            {/* Desktop controls */}
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <BugIcon size={14} className="text-kumo-inactive" />
+                <Switch
+                  checked={showDebug}
+                  onCheckedChange={setShowDebug}
+                  size="sm"
+                  aria-label="Toggle debug mode"
+                />
+              </div>
               <Button
                 variant="secondary"
                 shape="square"
-                className="sm:hidden"
-                icon={<PlugsConnectedIcon size={16} />}
-                onClick={() => setShowMcpPanel(!showMcpPanel)}
-                aria-label={`MCP servers${mcpToolCount > 0 ? ` (${mcpToolCount} tools)` : ""}`}
+                icon={dark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
               />
               <Button
                 variant="secondary"
-                className="hidden sm:inline-flex"
                 icon={<PlugsConnectedIcon size={16} />}
                 onClick={() => setShowMcpPanel(!showMcpPanel)}
               >
@@ -592,10 +606,93 @@ function Chat() {
                   </Badge>
                 )}
               </Button>
+              <Button
+                variant="secondary"
+                icon={<TrashIcon size={16} />}
+                onClick={clearHistory}
+              >
+                Clear
+              </Button>
+            </div>
 
-              {/* MCP Dropdown Panel */}
-              {showMcpPanel && (
-                <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 z-50">
+            {/* Mobile menu */}
+            <div className="relative sm:hidden" ref={mobileMenuRef}>
+              <Button
+                variant="secondary"
+                shape="square"
+                icon={<ListIcon size={18} />}
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                aria-label="Open menu"
+              />
+              {showMobileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 z-50 animate-message-in">
+                  <Surface className="rounded-xl ring ring-kumo-line shadow-lg p-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTheme();
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-kumo-control text-sm text-kumo-default transition-colors"
+                    >
+                      {dark ? <SunIcon size={14} /> : <MoonIcon size={14} />}
+                      {dark ? "Light mode" : "Dark mode"}
+                    </button>
+
+                    <div className="w-full flex items-center justify-between gap-2.5 px-3 py-2 text-sm text-kumo-default">
+                      <span className="flex items-center gap-2.5">
+                        <BugIcon size={14} />
+                        Debug
+                      </span>
+                      <Switch
+                        checked={showDebug}
+                        onCheckedChange={setShowDebug}
+                        size="sm"
+                        aria-label="Toggle debug mode"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMcpPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg hover:bg-kumo-control text-sm text-kumo-default transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <PlugsConnectedIcon size={14} />
+                        MCP servers
+                      </span>
+                      {mcpToolCount > 0 && (
+                        <Badge variant="primary">
+                          <WrenchIcon size={10} className="mr-0.5" />
+                          {mcpToolCount}
+                        </Badge>
+                      )}
+                    </button>
+
+                    <div className="border-t border-kumo-line my-1" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearHistory();
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-kumo-control text-sm text-kumo-default transition-colors"
+                    >
+                      <TrashIcon size={14} />
+                      Clear conversation
+                    </button>
+                  </Surface>
+                </div>
+              )}
+            </div>
+
+            {/* MCP Dropdown Panel (shared between desktop button and mobile menu) */}
+            {showMcpPanel && (
+              <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 z-50">
                   <Surface className="rounded-xl ring ring-kumo-line shadow-lg p-4 space-y-4">
                     {/* Panel Header */}
                     <div className="flex items-center justify-between">
@@ -742,23 +839,6 @@ function Chat() {
                   </Surface>
                 </div>
               )}
-            </div>
-            <Button
-              variant="secondary"
-              shape="square"
-              className="sm:hidden"
-              icon={<TrashIcon size={16} />}
-              onClick={clearHistory}
-              aria-label="Clear conversation"
-            />
-            <Button
-              variant="secondary"
-              className="hidden sm:inline-flex"
-              icon={<TrashIcon size={16} />}
-              onClick={clearHistory}
-            >
-              Clear
-            </Button>
           </div>
         </div>
       </header>
@@ -1054,7 +1134,7 @@ export default function App() {
     <Toasty>
       <Suspense
         fallback={
-          <div className="flex items-center justify-center h-screen text-kumo-inactive">
+          <div className="flex items-center justify-center h-dvh text-kumo-inactive">
             Loading...
           </div>
         }
